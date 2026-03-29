@@ -98,6 +98,13 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
     console.log(`✅ ${client.user.tag} is online!`)
     setupStockEmojis(client).catch(console.warn)
   })
+      // Register slash commands
+      try {
+        await client.application.commands.set([
+          { name: 'ticketpanel2', description: 'Post the purchase ticket panel', defaultMemberPermissions: '8' }
+        ])
+        console.log('✅ Slash commands registered!')
+      } catch(e) { console.warn('⚠️ Slash command registration failed:', e.message) }
 
   // ─── Message handler ───
   client.on('messageCreate', async message => {
@@ -205,7 +212,49 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
   // ─── Interaction handler ───
   client.on('interactionCreate', async interaction => {
     try {
-      // tp2 select menu
+      // /ticketpanel2 slash command
+        if (interaction.isChatInputCommand() && interaction.commandName === 'ticketpanel2') {
+          if (!await isAdmin(interaction.member)) {
+            return interaction.reply({ embeds: [err('No Permission', 'Admin only')], ephemeral: true })
+          }
+          const embed = new EmbedBuilder()
+            .setColor(0xADD8E6)
+            .setTitle('Open a ticket!')
+            .setDescription(
+              "Please open a ticket to purchase from our server.\n" +
+              "Troll tickets / wasting time will result in an instant ban.\n\n" +
+              "## WARRANTY\n" +
+              "We typically will not provide refunds, only replacements unless stated otherwise. The issue must be on our side.\n" +
+              "Refund prices may fluctuate depending on the supplier.\n" +
+              "*Read # // 🥞 • tos before opening.*"
+            )
+            .setImage('attachment://ticketpanel2_banner.jpg')
+          const row = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId('tp2_select')
+              .setPlaceholder('🛒 Select Purchase Type')
+              .addOptions([
+                new StringSelectMenuOptionBuilder().setLabel('auto-advertiser').setEmoji({ id: '1147841794613202974', name: 'daccounts' }).setValue('tp2_auto_advertiser'),
+                new StringSelectMenuOptionBuilder().setLabel('h1t-bot').setEmoji({ id: '1462448626134548563', name: 'bot', animated: true }).setValue('tp2_h1t_bot'),
+                new StringSelectMenuOptionBuilder().setLabel('sab-stock').setEmoji({ id: '1457870460954873878', name: 'dragon' }).setValue('tp2_sab_stock'),
+                new StringSelectMenuOptionBuilder().setLabel('b0Osts').setEmoji({ id: '1457349683696373893', name: 'boost' }).setValue('tp2_b0osts'),
+                new StringSelectMenuOptionBuilder().setLabel('m3mbers-on-off').setEmoji({ id: '1479652731747831900', name: 'members' }).setValue('tp2_members'),
+                new StringSelectMenuOptionBuilder().setLabel('reactions').setEmoji({ id: '1410754780925526076', name: 'joesmile' }).setValue('tp2_reactions'),
+                new StringSelectMenuOptionBuilder().setLabel('auto-chat').setEmoji({ id: '1462141951536267427', name: '9183shoppingcart' }).setValue('tp2_auto_chat'),
+                new StringSelectMenuOptionBuilder().setLabel('auto-trade').setEmoji({ id: '1462450236734701661', name: 'shopping_cart_green' }).setValue('tp2_auto_trade'),
+                new StringSelectMenuOptionBuilder().setLabel('auto-vouches').setEmoji({ id: '1468974966090371136', name: 'Verified' }).setValue('tp2_auto_vouches'),
+                new StringSelectMenuOptionBuilder().setLabel('nitro-gl').setEmoji({ id: '1246901197114314926', name: 'nitro' }).setValue('tp2_nitro_gl'),
+                new StringSelectMenuOptionBuilder().setLabel('profile-deco').setEmoji({ id: '1130420579309199380', name: 'aa10_profile' }).setValue('tp2_profile_deco'),
+                new StringSelectMenuOptionBuilder().setLabel('name-plate').setEmoji({ id: '1478038441747808410', name: 'Platinum_Rank' }).setValue('tp2_name_plate'),
+                new StringSelectMenuOptionBuilder().setLabel('profile-effect').setEmoji({ id: '1475133551828537365', name: 'tikbow_green', animated: true }).setValue('tp2_profile_effect'),
+              ])
+          )
+          const banner = new AttachmentBuilder('./assets/ticketpanel2_banner.jpg')
+          await interaction.channel.send({ embeds: [embed], components: [row], files: [banner] })
+          return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x2ecc71).setTitle('✅ Purchase panel posted!')], ephemeral: true })
+        }
+
+        // tp2 select menu
       if (interaction.isStringSelectMenu() && interaction.customId === 'tp2_select') {
         const selected = interaction.values[0]
         const modalConfigs = {
