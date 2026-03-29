@@ -112,15 +112,17 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
     if (cmd === 'ticketpanel2') {
       if (!await isAdmin(member)) return message.reply({ embeds: [err('No Permission', 'Admin only')] })
       const embed = new EmbedBuilder()
-        .setColor(C.RED)
-        .setTitle('🛍️ Purchase A Product')
-        .setDescription(
-          "Welcome to **Krazy Shop**!\n\n" +
-          "Select a product below to open a purchase ticket.\n" +
-          "Our staff will assist you shortly.\n\n" +
-          "*Read our TOS before opening a ticket.*"
-        )
-        .setImage('attachment://ticketpanel2_banner.jpg')
+        .setColor(0xADD8E6)
+          .setTitle('Open a ticket!')
+          .setDescription(
+            "Please open a ticket to purchase from our server.\n" +
+            "Troll tickets / wasting time will result in an instant ban.\n\n" +
+            "## WARRANTY\n" +
+            "We typically will not provide refunds, only replacements unless stated otherwise. The issue must be on our side.\n" +
+            "Refund prices may fluctuate depending on the supplier.\n" +
+            "*Read # // 🥞 • tos before opening.*"
+          )
+          .setImage('attachment://ticketpanel2_banner.jpg')
       const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId('tp2_select')
