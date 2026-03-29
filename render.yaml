@@ -1,0 +1,9 @@
+services:
+  - type: worker
+    name: krazy-shop-bot
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: BOT_TOKEN
+        sync: false

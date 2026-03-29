@@ -1,13 +1,14 @@
 {
   "name": "krazy-shop-bot",
   "version": "1.0.0",
-  "description": "Krazy Shop Discord Bot — stock, tickets, and purchase panel",
-  "main": "src/index.js",
+  "description": "Krazy Shop Discord Bot",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
   "dependencies": {
+    "better-sqlite3": "^12.8.0",
     "discord.js": "^14.16.3",
     "quick.db": "^9.1.7"
   }
