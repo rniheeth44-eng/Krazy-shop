@@ -101,7 +101,22 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
       // Register slash commands
       try {
         await client.application.commands.set([
-          { name: 'ticketpanel2', description: 'Post the purchase ticket panel', defaultMemberPermissions: '8' }
+          { name: 'ticketpanel2', description: 'Post the purchase ticket panel', defaultMemberPermissions: '8' },
+          {
+            name: 'vouch',
+            description: 'Leave a vouch/review',
+            options: [
+              { name: 'option', description: 'Star rating (1-5)', type: 4, required: true, choices: [
+                { name: '⭐ 1 Star', value: 1 },
+                { name: '⭐⭐ 2 Stars', value: 2 },
+                { name: '⭐⭐⭐ 3 Stars', value: 3 },
+                { name: '⭐⭐⭐⭐ 4 Stars', value: 4 },
+                { name: '⭐⭐⭐⭐⭐ 5 Stars', value: 5 },
+              ]},
+              { name: 'message', description: 'Your vouch message', type: 3, required: true },
+              { name: 'proof', description: 'Proof image (optional)', type: 11, required: false },
+            ]
+          }
         ])
         console.log('✅ Slash commands registered!')
       } catch(e) { console.warn('⚠️ Slash command registration failed:', e.message) }
@@ -207,7 +222,38 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
       await db.set(`stock_${found.key}_${guild.id}`, newQty)
       return message.reply({ embeds: [ok('Stock Updated', `${stockEmojiCache.get(found.key)||''} **${found.label}**\nRemoved: -${amount}\nNew total: ${newQty}`)] })
     }
-  })
+
+      // ─── .vouch ───
+      if (cmd === 'vouch') {
+        const stars = parseInt(args[0])
+        if (!stars || stars < 1 || stars > 5) return message.reply({ embeds: [err('Usage', '.vouch [1-5] [your message]')] })
+        const vouchMsg = args.slice(1).join(' ')
+        if (!vouchMsg) return message.reply({ embeds: [err('Usage', '.vouch [1-5] [your message]')] })
+        const starStr = '⭐'.repeat(stars)
+        const proof = message.attachments.first()
+        const now = new Date()
+        const ts = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
+        const embed = new EmbedBuilder()
+          .setColor(0xADD8E6)
+          .setTitle('New Vouch Created')
+          .setDescription(starStr)
+          .addFields(
+            { name: 'Vouch:', value: vouchMsg, inline: false },
+            { name: 'Vouched By:', value: `${message.author}`, inline: false },
+            { name: 'Vouched At:', value: ts, inline: false },
+          )
+          .setThumbnail('attachment://vouch_icon.png')
+          .setImage('attachment://vouch_banner.png')
+          .setFooter({ text: 'By Krazy Shop -- discord.gg/krazyshop' })
+        const vouchFiles = [
+          new AttachmentBuilder('./assets/vouch_icon.png'),
+          new AttachmentBuilder('./assets/vouch_banner.png'),
+        ]
+        if (proof) embed.setImage(proof.url)
+        return message.channel.send({ embeds: [embed], files: vouchFiles })
+      }
+
+    })
 
   // ─── Interaction handler ───
   client.on('interactionCreate', async interaction => {
@@ -252,9 +298,38 @@ const { Client, GatewayIntentBits, Partials, EmbedBuilder, ActionRowBuilder,
           const banner = new AttachmentBuilder('./assets/ticketpanel2_banner.jpg')
           await interaction.channel.send({ embeds: [embed], components: [row], files: [banner] })
           return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x2ecc71).setTitle('✅ Purchase panel posted!')], ephemeral: true })
+          }
+
+        // /vouch slash command
+        if (interaction.isChatInputCommand() && interaction.commandName === 'vouch') {
+          const stars = interaction.options.getInteger('option')
+          const vouchMsg = interaction.options.getString('message')
+          const proofAttachment = interaction.options.getAttachment('proof')
+          const starStr = '⭐'.repeat(stars)
+          const now = new Date()
+          const ts = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
+          const embed = new EmbedBuilder()
+            .setColor(0xADD8E6)
+            .setTitle('New Vouch Created')
+            .setDescription(starStr)
+            .addFields(
+              { name: 'Vouch:', value: vouchMsg, inline: false },
+              { name: 'Vouched By:', value: `${interaction.user}`, inline: false },
+              { name: 'Vouched At:', value: ts, inline: false },
+            )
+            .setThumbnail('attachment://vouch_icon.png')
+            .setImage('attachment://vouch_banner.png')
+            .setFooter({ text: 'By Krazy Shop -- discord.gg/krazyshop' })
+          const vouchFiles = [
+            new AttachmentBuilder('./assets/vouch_icon.png'),
+            new AttachmentBuilder('./assets/vouch_banner.png'),
+          ]
+          if (proofAttachment) embed.setImage(proofAttachment.url)
+          await interaction.channel.send({ embeds: [embed], files: vouchFiles })
+          return interaction.reply({ embeds: [new EmbedBuilder().setColor(0x2ecc71).setTitle('✅ Vouch posted!')], ephemeral: true })
         }
 
-        // tp2 select menu
+          // tp2 select menu
       if (interaction.isStringSelectMenu() && interaction.customId === 'tp2_select') {
         const selected = interaction.values[0]
         const modalConfigs = {
