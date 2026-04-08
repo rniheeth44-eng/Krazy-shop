@@ -184,6 +184,8 @@ function buildHelpEmbed(prefix) {
         value: [
           `\`${prefix}prefix set <prefix>\` / \`/prefix set\` — Change the bot prefix *(Admin)*`,
           `\`${prefix}prefix\` / \`/prefix view\` — View the current prefix`,
+          `\`${prefix}setticketrole <@role>\` / \`/setticketrole\` — Set role pinged on new tickets *(Admin)*`,
+          `\`${prefix}adduser <@user|id>\` / \`/adduser\` — Add a user to this ticket *(Admin)*`,
           `\`${prefix}help\` / \`/help\` — Show this help menu`,
         ].join('\n'),
         inline: false
@@ -260,6 +262,22 @@ client.once('ready', async () => {
       {
         name: 'help',
         description: 'Show all available commands'
+      },
+      {
+        name: 'setticketrole',
+        description: 'Set the role to ping when a new ticket is opened (Admin)',
+        defaultMemberPermissions: '8',
+        options: [
+          { name: 'role', description: 'The role to ping on new tickets', type: 8, required: true }
+        ]
+      },
+      {
+        name: 'adduser',
+        description: 'Add a user to the current ticket channel',
+        defaultMemberPermissions: '8',
+        options: [
+          { name: 'user', description: 'User to add — mention or user ID', type: 3, required: true }
+        ]
       },
     ])
     console.log('✅ Slash commands registered!')
@@ -340,6 +358,34 @@ client.on('messageCreate', async message => {
     }
     const cur = await getPrefix(guild.id)
     return message.reply({ embeds:[mkEmbed('Current Prefix', `The current prefix is \`${cur}\``)] })
+  }
+
+  // ─── setticketrole ───
+  if (cmd === 'setticketrole') {
+    if (!await isAdmin(member)) return message.reply({ embeds:[mkEmbed('No Permission', 'Admin only')] })
+    const roleInput = args[0]
+    if (!roleInput) return message.reply({ embeds:[mkEmbed('Usage', `\`${prefix}setticketrole <@role>\``)] })
+    const roleId = roleInput.replace(/[<@&>]/g, '')
+    const role = guild.roles.cache.get(roleId)
+    if (!role) return message.reply({ embeds:[mkEmbed('Role Not Found', 'Please mention a valid role or provide a valid role ID.')] })
+    await db.set(`ticketrole2_${guild.id}`, role.id)
+    return message.reply({ embeds:[mkEmbed('✅ Ticket Role Set', `New tickets will now ping <@&${role.id}>.`)] })
+  }
+
+  // ─── adduser ───
+  if (cmd === 'adduser') {
+    if (!await isAdmin(member)) return message.reply({ embeds:[mkEmbed('No Permission', 'Admin only')] })
+    const userInput = args[0]
+    if (!userInput) return message.reply({ embeds:[mkEmbed('Usage', `\`${prefix}adduser <@user|id>\``)] })
+    const userId = userInput.replace(/[<@!>]/g, '')
+    let target
+    try { target = await guild.members.fetch(userId) } catch {
+      return message.reply({ embeds:[mkEmbed('User Not Found', 'Could not find that user in this server.')] })
+    }
+    await message.channel.permissionOverwrites.edit(target.id, {
+      ViewChannel: true, SendMessages: true, ReadMessageHistory: true
+    })
+    return message.reply({ embeds:[mkEmbed('✅ User Added', `${target.user} has been added to this ticket.`)] })
   }
 
   // ─── help ───
@@ -467,6 +513,31 @@ client.on('interactionCreate', async interaction => {
           const cur = await getPrefix(interaction.guild.id)
           return interaction.reply({ embeds:[mkEmbed('Current Prefix', `The current prefix is \`${cur}\``)], ephemeral:true })
         }
+      }
+
+      // ─── /setticketrole ───
+      if (commandName === 'setticketrole') {
+        if (!await isAdmin(interaction.member))
+          return interaction.reply({ embeds:[mkEmbed('No Permission', 'Admin only')], ephemeral:true })
+        const role = interaction.options.getRole('role')
+        await db.set(`ticketrole2_${interaction.guild.id}`, role.id)
+        return interaction.reply({ embeds:[mkEmbed('✅ Ticket Role Set', `New tickets will now ping ${role}.`)], ephemeral:true })
+      }
+
+      // ─── /adduser ───
+      if (commandName === 'adduser') {
+        if (!await isAdmin(interaction.member))
+          return interaction.reply({ embeds:[mkEmbed('No Permission', 'Admin only')], ephemeral:true })
+        const input = interaction.options.getString('user').trim()
+        const userId = input.replace(/[<@!>]/g, '')
+        let target
+        try { target = await interaction.guild.members.fetch(userId) } catch {
+          return interaction.reply({ embeds:[mkEmbed('User Not Found', 'Could not find that user in this server.')], ephemeral:true })
+        }
+        await interaction.channel.permissionOverwrites.edit(target.id, {
+          ViewChannel: true, SendMessages: true, ReadMessageHistory: true
+        })
+        return interaction.reply({ embeds:[mkEmbed('✅ User Added', `${target.user} has been added to this ticket.`)], ephemeral:true })
       }
 
       // ─── /help ───
